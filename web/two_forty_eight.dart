@@ -152,16 +152,29 @@ class Board {
 class AppController {
   Board board = new Board();
 
+  bool gameOver = false;
+
   AppController(Element element) {
     element.onKeyDown.listen(keyDown);
   }
 
   void clear() {
     board.clear();
+    gameOver = false;
+  }
+
+  void _checkGameOver() {
+    if (board.openCells.isEmpty) {
+      Board tmp = new Board.copy(board);
+      if (!(tmp.left() || tmp.right() || tmp.up() || tmp.down())) {
+        gameOver = true;
+      }
+    }
   }
 
   void addRandom() {
     board.addRandom();
+    _checkGameOver();
   }
 
   void newGame() {
@@ -172,7 +185,7 @@ class AppController {
   }
 
   void handleNoChange() {
-
+    _checkGameOver();
   }
 
   void left() {
