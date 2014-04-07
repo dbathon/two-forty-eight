@@ -26,6 +26,8 @@ class Board {
 
   List<List<Cell>> rows;
 
+  int score = 0;
+
   Board([int size = 4]) {
     rows = new List.generate(size, (y) => new List.generate(size, (x) =>
         new Cell(x, y)));
@@ -34,6 +36,7 @@ class Board {
   Board.copy(Board board) {
     rows = board.rows.map((List<Cell> row) => row.map((Cell cell) =>
         new Cell.copy(cell)).toList()).toList();
+    score = board.score;
   }
 
   int get size => rows.length;
@@ -108,6 +111,7 @@ class Board {
               if (cell.val == mergeCell.val) {
                 cell.val += mergeCell.val;
                 mergeCell.val = null;
+                score += cell.val;
                 changed = true;
               }
               break;
@@ -158,6 +162,13 @@ class AppController {
 
   void addRandom() {
     board.addRandom();
+  }
+
+  void newGame() {
+    clear();
+    addRandom();
+    addRandom();
+    board.score = 0;
   }
 
   void handleNoChange() {

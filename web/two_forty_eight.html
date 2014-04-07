@@ -10,6 +10,7 @@
     <h1>Two forty eight</h1>
 
     <div>
+      <button ng-click="c.newGame()">New game</button>
       <button ng-click="c.clear()">Clear</button>
       <button ng-click="c.addRandom()">Add random</button>
     </div>
@@ -19,6 +20,10 @@
       <button ng-click="c.right()">right</button>
       <button ng-click="c.up()">up</button>
       <button ng-click="c.down()">down</button>
+    </div>
+
+    <div>
+      Score: {{c.board.score}}
     </div>
 
     <table>
