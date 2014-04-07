@@ -1,0 +1,7 @@
+name: two_forty_eight
+description: A sample web application
+dependencies:
+  browser: any
+  angular: 0.9.10
+  js: any
+  shadow_dom: any
