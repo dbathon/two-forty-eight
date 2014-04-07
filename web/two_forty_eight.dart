@@ -39,6 +39,22 @@ class Board {
     score = board.score;
   }
 
+  void copyStateFrom(Board board) {
+    if (this == board) {
+      return;
+    }
+    if (size != board.size) {
+      throw "different sizes";
+    }
+
+    for (int y = 0; y < size; ++y) {
+      for (int x = 0; x < size; ++x) {
+        rows[y][x].val = board.rows[y][x].val;
+      }
+    }
+    score = board.score;
+  }
+
   int get size => rows.length;
 
   List<List<Cell>> get columns {
@@ -152,6 +168,8 @@ class Board {
 class AppController {
   Board board = new Board();
 
+  List<Board> undos = [];
+
   bool gameOver = false;
 
   AppController(Element element) {
@@ -184,39 +202,57 @@ class AppController {
     board.score = 0;
   }
 
-  void handleNoChange() {
+  void saveUndo() {
+    undos.add(new Board.copy(board));
+    while (undos.length > 1000) {
+      undos.removeAt(0);
+    }
+  }
+
+  void undo() {
+    if (undos.isNotEmpty) {
+      board.copyStateFrom(undos.removeLast());
+    }
+  }
+
+  void _handleNoChange() {
+    undos.removeLast();
     _checkGameOver();
   }
 
   void left() {
+    saveUndo();
     if (board.left()) {
       board.addRandom();
     } else {
-      handleNoChange();
+      _handleNoChange();
     }
   }
 
   void right() {
+    saveUndo();
     if (board.right()) {
       board.addRandom();
     } else {
-      handleNoChange();
+      _handleNoChange();
     }
   }
 
   void up() {
+    saveUndo();
     if (board.up()) {
       board.addRandom();
     } else {
-      handleNoChange();
+      _handleNoChange();
     }
   }
 
   void down() {
+    saveUndo();
     if (board.down()) {
       board.addRandom();
     } else {
-      handleNoChange();
+      _handleNoChange();
     }
   }
 
