@@ -78,7 +78,7 @@ class Board {
 
     if (openCells.isNotEmpty) {
       Cell cell = openCells[_random.nextInt(openCells.length)];
-      cell.val = 2;
+      cell.val = _random.nextDouble() < 0.9 ? 2 : 4;
     }
   }
 
