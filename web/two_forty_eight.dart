@@ -1,6 +1,7 @@
 library two_forty_eight;
 
 import "dart:html";
+import "dart:async";
 import "dart:math";
 
 import 'package:angular/angular.dart';
@@ -22,6 +23,8 @@ class Cell {
 }
 
 class Board {
+  static final List<String> DIRECTIONS = ["up", "down", "left", "right"];
+
   static final Random _random = new Random();
 
   List<List<Cell>> rows;
@@ -161,6 +164,21 @@ class Board {
     return _collapseCells(columns.map((column) => column.reversed.toList()));
   }
 
+  bool doDirection(String direction) {
+    switch (direction) {
+      case "up":
+        return up();
+      case "down":
+        return down();
+      case "left":
+        return left();
+      case "right":
+        return right();
+      default:
+        throw "unknown direction: $direction";
+    }
+  }
+
 }
 
 
@@ -172,8 +190,56 @@ class AppController {
 
   bool gameOver = false;
 
-  AppController(Element element) {
+  bool run = false;
+  num runDelay = 50;
+  Timer currentTimer;
+
+  AppController(Element element, Scope scope) {
     element.onKeyDown.listen(keyDown);
+
+    scope.watch('[run, runDelay]', (v, _) {
+      if (currentTimer != null) {
+        currentTimer.cancel();
+        currentTimer = null;
+      }
+      setupTimer();
+    }, context: this);
+  }
+
+  setupTimer() {
+    if (run) {
+      currentTimer = new Timer(new Duration(milliseconds: runDelay.toInt()), ()
+          {
+        currentTimer = null;
+        if (run) {
+          step();
+          setupTimer();
+        }
+      });
+    }
+  }
+
+  void step() {
+    // greedy (best score after two moves)
+    String best = null;
+    int bestScore = -1;
+    Board.DIRECTIONS.forEach((String dir) {
+      Board tmp = new Board.copy(board);
+      if (tmp.doDirection(dir)) {
+        Board.DIRECTIONS.forEach((String dir2) {
+          Board tmp2 = new Board.copy(tmp);
+
+          if (tmp2.doDirection(dir2) && tmp2.score > bestScore) {
+            best = dir;
+            bestScore = tmp2.score;
+          }
+        });
+      }
+    });
+
+    if (best != null) {
+      doDirection(best);
+    }
   }
 
   void clear() {
@@ -220,40 +286,29 @@ class AppController {
     _checkGameOver();
   }
 
-  void left() {
+  void doDirection(String direction) {
     saveUndo();
-    if (board.left()) {
-      board.addRandom();
+    if (board.doDirection(direction)) {
+      addRandom();
     } else {
       _handleNoChange();
     }
+  }
+
+  void left() {
+    doDirection("left");
   }
 
   void right() {
-    saveUndo();
-    if (board.right()) {
-      board.addRandom();
-    } else {
-      _handleNoChange();
-    }
+    doDirection("right");
   }
 
   void up() {
-    saveUndo();
-    if (board.up()) {
-      board.addRandom();
-    } else {
-      _handleNoChange();
-    }
+    doDirection("up");
   }
 
   void down() {
-    saveUndo();
-    if (board.down()) {
-      board.addRandom();
-    } else {
-      _handleNoChange();
-    }
+    doDirection("down");
   }
 
   void keyDown(KeyboardEvent event) {

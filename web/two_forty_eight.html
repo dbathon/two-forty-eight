@@ -25,6 +25,10 @@
     </div>
 
     <div>
+      <label>Run: <input type="checkbox" ng-model="c.run"></label>
+      <br>
+      <label>Delay: <input type="range" min="5" max="1000" ng-model="c.runDelay"></label>
+      <br>
       Score: {{c.board.score}} <strong>{{c.gameOver ? 'Game Over' : ''}}</strong>
     </div>
 
