@@ -23,7 +23,7 @@ class Cell {
 }
 
 class Board {
-  static final List<String> DIRECTIONS = ["up", "down", "left", "right"];
+  static final List<String> DIRECTIONS = const ["up", "down", "left", "right"];
 
   static final Random _random = new Random();
 
@@ -182,6 +182,116 @@ class Board {
 }
 
 
+class Strategy {
+  final String name;
+  const Strategy(this.name);
+  String nextDirection(Board board) => null;
+}
+
+class RandomStrategy extends Strategy {
+  static final Random _random = new Random();
+
+  const RandomStrategy(): super("random");
+
+  String nextDirection(Board board) {
+    return Board.DIRECTIONS[_random.nextInt(Board.DIRECTIONS.length)];
+  }
+}
+
+class Greedy1Strategy extends Strategy {
+  const Greedy1Strategy(): super("greedy1");
+
+  String nextDirection(Board board) {
+    // best score after two moves
+    String best = null;
+    int bestScore = -1;
+    Board.DIRECTIONS.forEach((String dir) {
+      Board tmp = new Board.copy(board);
+      if (tmp.doDirection(dir) && tmp.score > bestScore) {
+        best = dir;
+        bestScore = tmp.score;
+      }
+    });
+
+    return best;
+  }
+}
+
+class Greedy2Strategy extends Strategy {
+  const Greedy2Strategy(): super("greedy2");
+
+  String nextDirection(Board board) {
+    // best score after two moves
+    String best = null;
+    int bestScore = -1;
+    Board.DIRECTIONS.forEach((String dir) {
+      Board tmp = new Board.copy(board);
+      if (tmp.doDirection(dir)) {
+        Board.DIRECTIONS.forEach((String dir2) {
+          Board tmp2 = new Board.copy(tmp);
+
+          if (tmp2.doDirection(dir2) && tmp2.score > bestScore) {
+            best = dir;
+            bestScore = tmp2.score;
+          }
+        });
+      }
+    });
+
+    return best;
+  }
+}
+
+class AntiGreedyStrategy extends Strategy {
+  const AntiGreedyStrategy(): super("anti greedy");
+
+  String nextDirection(Board board) {
+    // worst score after two moves
+    String worst = null;
+    int worstScore = null;
+    Board.DIRECTIONS.forEach((String dir) {
+      Board tmp = new Board.copy(board);
+      if (tmp.doDirection(dir) && (worstScore == null || tmp.score <
+          worstScore)) {
+        worst = dir;
+        worstScore = tmp.score;
+      }
+    });
+
+    return worst;
+  }
+}
+
+class Greedy2DownStrategy extends Strategy {
+  const Greedy2DownStrategy(): super("greedy2 down");
+
+  String nextDirection(Board board) {
+    // best score after two moves
+    String best = null;
+    int bestScore = -1;
+    Board.DIRECTIONS.skip(1).forEach((String dir) {
+      Board tmp = new Board.copy(board);
+      if (tmp.doDirection(dir)) {
+        Board.DIRECTIONS.skip(1).forEach((String dir2) {
+          Board tmp2 = new Board.copy(tmp);
+
+          if (tmp2.doDirection(dir2) && tmp2.score > bestScore) {
+            best = dir;
+            bestScore = tmp2.score;
+          }
+        });
+      }
+    });
+
+    if (best != null) {
+      return best;
+    } else {
+      return "up";
+    }
+  }
+}
+
+
 @NgController(selector: "[main-ctrl]", publishAs: "c")
 class AppController {
   Board board = new Board();
@@ -194,7 +304,15 @@ class AppController {
   num runDelay = 50;
   Timer currentTimer;
 
+  final List<Strategy> strategies = const [const RandomStrategy(),
+      const Greedy1Strategy(), const Greedy2Strategy(), const AntiGreedyStrategy(),
+      const Greedy2DownStrategy()];
+
+  Strategy strategy;
+
   AppController(Element element, Scope scope) {
+    strategy = strategies.first;
+
     element.onKeyDown.listen(keyDown);
 
     scope.watch('[run, runDelay]', (v, _) {
@@ -220,25 +338,12 @@ class AppController {
   }
 
   void step() {
-    // greedy (best score after two moves)
-    String best = null;
-    int bestScore = -1;
-    Board.DIRECTIONS.forEach((String dir) {
-      Board tmp = new Board.copy(board);
-      if (tmp.doDirection(dir)) {
-        Board.DIRECTIONS.forEach((String dir2) {
-          Board tmp2 = new Board.copy(tmp);
+    if (strategy != null) {
+      String next = strategy.nextDirection(new Board.copy(board));
 
-          if (tmp2.doDirection(dir2) && tmp2.score > bestScore) {
-            best = dir;
-            bestScore = tmp2.score;
-          }
-        });
+      if (next != null) {
+        doDirection(next);
       }
-    });
-
-    if (best != null) {
-      doDirection(best);
     }
   }
 
