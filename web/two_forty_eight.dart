@@ -198,96 +198,72 @@ class RandomStrategy extends Strategy {
   }
 }
 
-class Greedy1Strategy extends Strategy {
-  const Greedy1Strategy(): super("greedy1");
+class EvaluateStrategy extends Strategy {
+  final int searchDepth;
+  const EvaluateStrategy(String name, this.searchDepth): super(name);
 
-  String nextDirection(Board board) {
-    // best score after two moves
-    String best = null;
-    int bestScore = -1;
-    Board.DIRECTIONS.forEach((String dir) {
-      Board tmp = new Board.copy(board);
-      if (tmp.doDirection(dir) && tmp.score > bestScore) {
-        best = dir;
-        bestScore = tmp.score;
-      }
-    });
-
-    return best;
+  num evaluate(Board board, List<String> moves) {
+    return board.score;
   }
-}
 
-class Greedy2Strategy extends Strategy {
-  const Greedy2Strategy(): super("greedy2");
-
-  String nextDirection(Board board) {
-    // best score after two moves
-    String best = null;
-    int bestScore = -1;
-    Board.DIRECTIONS.forEach((String dir) {
-      Board tmp = new Board.copy(board);
-      if (tmp.doDirection(dir)) {
-        Board.DIRECTIONS.forEach((String dir2) {
-          Board tmp2 = new Board.copy(tmp);
-
-          if (tmp2.doDirection(dir2) && tmp2.score > bestScore) {
-            best = dir;
-            bestScore = tmp2.score;
-          }
-        });
-      }
-    });
-
-    return best;
-  }
-}
-
-class AntiGreedyStrategy extends Strategy {
-  const AntiGreedyStrategy(): super("anti greedy");
-
-  String nextDirection(Board board) {
-    // worst score after two moves
-    String worst = null;
-    int worstScore = null;
-    Board.DIRECTIONS.forEach((String dir) {
-      Board tmp = new Board.copy(board);
-      if (tmp.doDirection(dir) && (worstScore == null || tmp.score <
-          worstScore)) {
-        worst = dir;
-        worstScore = tmp.score;
-      }
-    });
-
-    return worst;
-  }
-}
-
-class Greedy2DownStrategy extends Strategy {
-  const Greedy2DownStrategy(): super("greedy2 down");
-
-  String nextDirection(Board board) {
-    // best score after two moves
-    String best = null;
-    int bestScore = -1;
-    Board.DIRECTIONS.skip(1).forEach((String dir) {
-      Board tmp = new Board.copy(board);
-      if (tmp.doDirection(dir)) {
-        Board.DIRECTIONS.skip(1).forEach((String dir2) {
-          Board tmp2 = new Board.copy(tmp);
-
-          if (tmp2.doDirection(dir2) && tmp2.score > bestScore) {
-            best = dir;
-            bestScore = tmp2.score;
-          }
-        });
-      }
-    });
-
-    if (best != null) {
-      return best;
-    } else {
-      return "up";
+  num _search(Board board, List<String> previousMoves) {
+    if (previousMoves.length >= searchDepth) {
+      return evaluate(board, previousMoves);
     }
+
+    num bestScore = null;
+    Board.DIRECTIONS.forEach((String dir) {
+      Board tmp = new Board.copy(board);
+      if (tmp.doDirection(dir)) {
+
+        num score = _search(tmp, new List.from(previousMoves)..add(dir));
+        if (bestScore == null || score > bestScore) {
+          bestScore = score;
+        }
+      }
+    });
+
+    return bestScore;
+  }
+
+  String nextDirection(Board board) {
+    String best = null;
+    num bestScore = null;
+    Board.DIRECTIONS.forEach((String dir) {
+      Board tmp = new Board.copy(board);
+      if (tmp.doDirection(dir)) {
+        num score = _search(tmp, [dir]);
+        if (bestScore == null || score > bestScore) {
+          best = dir;
+          bestScore = score;
+        }
+      }
+    });
+
+    return best;
+  }
+}
+
+class GreedyStrategy extends EvaluateStrategy {
+  const GreedyStrategy(int searchDepth): super("greedy $searchDepth",
+      searchDepth);
+}
+
+class AntiGreedyStrategy extends EvaluateStrategy {
+  const AntiGreedyStrategy(int searchDepth): super("anti greedy $searchDepth",
+      searchDepth);
+
+  num evaluate(Board board, List<String> moves) {
+    return -board.score;
+  }
+}
+
+class GreedyDownStrategy extends EvaluateStrategy {
+  const GreedyDownStrategy(int searchDepth): super("greedy $searchDepth down",
+      searchDepth);
+
+  num evaluate(Board board, List<String> moves) {
+    return moves[0] == "up" ? -1 : board.score;
   }
 }
 
@@ -305,8 +281,10 @@ class AppController {
   Timer currentTimer;
 
   final List<Strategy> strategies = const [const RandomStrategy(),
-      const Greedy1Strategy(), const Greedy2Strategy(), const AntiGreedyStrategy(),
-      const Greedy2DownStrategy()];
+      const GreedyStrategy(1), const GreedyStrategy(2), const AntiGreedyStrategy(1),
+      const AntiGreedyStrategy(2), const GreedyDownStrategy(1),
+      const GreedyDownStrategy(2), const GreedyDownStrategy(3),
+      const GreedyDownStrategy(4)];
 
   Strategy strategy;
 
