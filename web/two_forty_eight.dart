@@ -198,9 +198,22 @@ class RandomStrategy extends Strategy {
   }
 }
 
+class UpLeftRightDownStrategy extends Strategy {
+  const UpLeftRightDownStrategy(): super("up left right down");
+
+  String nextDirection(Board board) {
+    Board tmp = new Board.copy(board);
+    return ["up", "left", "right", "down"].firstWhere((dir) => tmp.doDirection(
+        dir), orElse: () => null);
+  }
+}
+
 class EvaluateStrategy extends Strategy {
   final int searchDepth;
-  const EvaluateStrategy(String name, this.searchDepth): super(name);
+  final bool sumScores;
+
+  const EvaluateStrategy(String name, this.searchDepth, [this.sumScores =
+      false]): super(name);
 
   num evaluate(Board board, List<String> moves) {
     return board.score;
@@ -211,12 +224,17 @@ class EvaluateStrategy extends Strategy {
       return evaluate(board, previousMoves);
     }
 
+    num baseScore = 0;
+    if (sumScores) {
+      baseScore = evaluate(board, previousMoves);
+    }
+
     num bestScore = null;
     Board.DIRECTIONS.forEach((String dir) {
       Board tmp = new Board.copy(board);
       if (tmp.doDirection(dir)) {
-
-        num score = _search(tmp, new List.from(previousMoves)..add(dir));
+        num score = baseScore + _search(tmp, new List.from(previousMoves)..add(
+            dir));
         if (bestScore == null || score > bestScore) {
           bestScore = score;
         }
@@ -267,6 +285,41 @@ class GreedyDownStrategy extends EvaluateStrategy {
   }
 }
 
+class EdgeStrategy extends EvaluateStrategy {
+  const EdgeStrategy(int searchDepth): super("edge $searchDepth", searchDepth,
+      true);
+
+  num _cellScore(Cell cell) {
+    if (cell.empty) {
+      return 0;
+    }
+    num x = log(cell.val) / log(2);
+    return x * x;
+  }
+
+  num _edgeCellScore(Cell cell, Board board) {
+    num s = _cellScore(cell);
+
+    if (cell.y == 0) {
+      s *= s;
+      if (cell.x == 0) {
+        s *= s;
+      }
+    }
+    return s / (cell.y + 1);
+  }
+
+  num evaluate(Board board, List<String> moves) {
+    num score = 0;
+    board.rows.forEach((row) {
+      row.forEach((cell) {
+        score += _edgeCellScore(cell, board);
+      });
+    });
+    return score;
+  }
+}
+
 
 @NgController(selector: "[main-ctrl]", publishAs: "c")
 class AppController {
@@ -281,10 +334,11 @@ class AppController {
   Timer currentTimer;
 
   final List<Strategy> strategies = const [const RandomStrategy(),
-      const GreedyStrategy(1), const GreedyStrategy(2), const AntiGreedyStrategy(1),
-      const AntiGreedyStrategy(2), const GreedyDownStrategy(1),
-      const GreedyDownStrategy(2), const GreedyDownStrategy(3),
-      const GreedyDownStrategy(4)];
+      const UpLeftRightDownStrategy(), const GreedyStrategy(1), const GreedyStrategy(2
+      ), const AntiGreedyStrategy(1), const AntiGreedyStrategy(2),
+      const GreedyDownStrategy(1), const GreedyDownStrategy(2),
+      const GreedyDownStrategy(3), const GreedyDownStrategy(4), const EdgeStrategy(1),
+      const EdgeStrategy(2), const EdgeStrategy(3), const EdgeStrategy(4), const EdgeStrategy(5)];
 
   Strategy strategy;
 
