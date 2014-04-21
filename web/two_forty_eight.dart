@@ -5,11 +5,8 @@ import "dart:async";
 import "dart:math";
 
 import 'package:angular/angular.dart';
+import 'package:angular/application_factory.dart';
 import 'package:di/di.dart';
-
-// Temporary, please follow https://github.com/angular/angular.dart/issues/476
-@MirrorsUsed(targets: const [], override: '*')
-import 'dart:mirrors';
 
 
 class Cell {
@@ -32,13 +29,11 @@ class Board {
   int score = 0;
 
   Board([int size = 4]) {
-    rows = new List.generate(size, (y) => new List.generate(size, (x) =>
-        new Cell(x, y)));
+    rows = new List.generate(size, (y) => new List.generate(size, (x) => new Cell(x, y)));
   }
 
   Board.copy(Board board) {
-    rows = board.rows.map((List<Cell> row) => row.map((Cell cell) =>
-        new Cell.copy(cell)).toList()).toList();
+    rows = board.rows.map((List<Cell> row) => row.map((Cell cell) => new Cell.copy(cell)).toList()).toList();
     score = board.score;
   }
 
@@ -203,8 +198,7 @@ class UpLeftRightDownStrategy extends Strategy {
 
   String nextDirection(Board board) {
     Board tmp = new Board.copy(board);
-    return ["up", "left", "right", "down"].firstWhere((dir) => tmp.doDirection(
-        dir), orElse: () => null);
+    return ["up", "left", "right", "down"].firstWhere((dir) => tmp.doDirection(dir), orElse: () => null);
   }
 }
 
@@ -212,8 +206,7 @@ class EvaluateStrategy extends Strategy {
   final int searchDepth;
   final bool sumScores;
 
-  const EvaluateStrategy(String name, this.searchDepth, [this.sumScores =
-      false]): super(name);
+  const EvaluateStrategy(String name, this.searchDepth, [this.sumScores = false]): super(name);
 
   num evaluate(Board board, List<String> moves) {
     return board.score;
@@ -233,8 +226,7 @@ class EvaluateStrategy extends Strategy {
     Board.DIRECTIONS.forEach((String dir) {
       Board tmp = new Board.copy(board);
       if (tmp.doDirection(dir)) {
-        num score = baseScore + _search(tmp, new List.from(previousMoves)..add(
-            dir));
+        num score = baseScore + _search(tmp, new List.from(previousMoves)..add(dir));
         if (bestScore == null || score > bestScore) {
           bestScore = score;
         }
@@ -263,13 +255,11 @@ class EvaluateStrategy extends Strategy {
 }
 
 class GreedyStrategy extends EvaluateStrategy {
-  const GreedyStrategy(int searchDepth): super("greedy $searchDepth",
-      searchDepth);
+  const GreedyStrategy(int searchDepth): super("greedy $searchDepth", searchDepth);
 }
 
 class AntiGreedyStrategy extends EvaluateStrategy {
-  const AntiGreedyStrategy(int searchDepth): super("anti greedy $searchDepth",
-      searchDepth);
+  const AntiGreedyStrategy(int searchDepth): super("anti greedy $searchDepth", searchDepth);
 
   num evaluate(Board board, List<String> moves) {
     return -board.score;
@@ -277,8 +267,7 @@ class AntiGreedyStrategy extends EvaluateStrategy {
 }
 
 class GreedyDownStrategy extends EvaluateStrategy {
-  const GreedyDownStrategy(int searchDepth): super("greedy $searchDepth down",
-      searchDepth);
+  const GreedyDownStrategy(int searchDepth): super("greedy $searchDepth down", searchDepth);
 
   num evaluate(Board board, List<String> moves) {
     return moves[0] == "up" ? -1 : board.score;
@@ -286,8 +275,7 @@ class GreedyDownStrategy extends EvaluateStrategy {
 }
 
 class EdgeStrategy extends EvaluateStrategy {
-  const EdgeStrategy(int searchDepth): super("edge $searchDepth", searchDepth,
-      true);
+  const EdgeStrategy(int searchDepth): super("edge $searchDepth", searchDepth, true);
 
   num _cellScore(Cell cell) {
     if (cell.empty) {
@@ -321,7 +309,7 @@ class EdgeStrategy extends EvaluateStrategy {
 }
 
 
-@NgController(selector: "[main-ctrl]", publishAs: "c")
+@Controller(selector: "[main-ctrl]", publishAs: "c", exportExpressions: const ['[run, runDelay]'])
 class AppController {
   Board board = new Board();
 
@@ -333,12 +321,7 @@ class AppController {
   num runDelay = 50;
   Timer currentTimer;
 
-  final List<Strategy> strategies = const [const RandomStrategy(),
-      const UpLeftRightDownStrategy(), const GreedyStrategy(1), const GreedyStrategy(2
-      ), const AntiGreedyStrategy(1), const AntiGreedyStrategy(2),
-      const GreedyDownStrategy(1), const GreedyDownStrategy(2),
-      const GreedyDownStrategy(3), const GreedyDownStrategy(4), const EdgeStrategy(1),
-      const EdgeStrategy(2), const EdgeStrategy(3), const EdgeStrategy(4), const EdgeStrategy(5)];
+  final List<Strategy> strategies = const [const RandomStrategy(), const UpLeftRightDownStrategy(), const GreedyStrategy(1), const GreedyStrategy(2), const AntiGreedyStrategy(1), const AntiGreedyStrategy(2), const GreedyDownStrategy(1), const GreedyDownStrategy(2), const GreedyDownStrategy(3), const GreedyDownStrategy(4), const EdgeStrategy(1), const EdgeStrategy(2), const EdgeStrategy(3), const EdgeStrategy(4), const EdgeStrategy(5)];
 
   Strategy strategy;
 
@@ -358,8 +341,7 @@ class AppController {
 
   setupTimer() {
     if (run) {
-      currentTimer = new Timer(new Duration(milliseconds: runDelay.toInt()), ()
-          {
+      currentTimer = new Timer(new Duration(milliseconds: runDelay.toInt()), () {
         currentTimer = null;
         if (run) {
           step();
@@ -475,5 +457,5 @@ class AppModule extends Module {
 }
 
 void main() {
-  ngBootstrap(module: new AppModule());
+  applicationFactory().addModule(new AppModule()).run();
 }
