@@ -321,7 +321,10 @@ class AppController {
   num runDelay = 50;
   Timer currentTimer;
 
-  final List<Strategy> strategies = const [const RandomStrategy(), const UpLeftRightDownStrategy(), const GreedyStrategy(1), const GreedyStrategy(2), const AntiGreedyStrategy(1), const AntiGreedyStrategy(2), const GreedyDownStrategy(1), const GreedyDownStrategy(2), const GreedyDownStrategy(3), const GreedyDownStrategy(4), const EdgeStrategy(1), const EdgeStrategy(2), const EdgeStrategy(3), const EdgeStrategy(4), const EdgeStrategy(5)];
+  final List<Strategy> strategies = const [const RandomStrategy(), const UpLeftRightDownStrategy(),
+      const GreedyStrategy(1), const GreedyStrategy(2), const AntiGreedyStrategy(1), const AntiGreedyStrategy(2),
+      const GreedyDownStrategy(1), const GreedyDownStrategy(2), const GreedyDownStrategy(3), const GreedyDownStrategy(4),
+      const EdgeStrategy(1), const EdgeStrategy(2), const EdgeStrategy(3), const EdgeStrategy(4), const EdgeStrategy(5)];
 
   Strategy strategy;
 
