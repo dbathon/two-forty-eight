@@ -109,7 +109,13 @@ class Board {
       return false;
     }
   }
-  bool _collapse(List<Cell> cells) {
+
+  bool _collapse(List<Cell> cells, bool collapseAcrossEmpty) {
+    if (!collapseAcrossEmpty) {
+      // only keep the cells before the first empty one
+      cells = cells.takeWhile((cell) => !cell.empty).toList();
+    }
+
     bool changed = false;
     for (int i = 0; i < cells.length - 1; ++i) {
       Cell cell = cells[i];
@@ -139,36 +145,36 @@ class Board {
     return changed;
   }
 
-  bool _collapseCells(Iterable<List<Cell>> cellLists) {
-    return cellLists.fold(false, (a, cells) => _collapse(cells) || a);
+  bool _collapseCells(Iterable<List<Cell>> cellLists, bool collapseAcrossEmpty) {
+    return cellLists.fold(false, (a, cells) => _collapse(cells, collapseAcrossEmpty) || a);
   }
 
-  bool left() {
-    return _collapseCells(rows);
+  bool left([bool collapseAcrossEmpty = true]) {
+    return _collapseCells(rows, collapseAcrossEmpty);
   }
 
-  bool right() {
-    return _collapseCells(rows.map((row) => row.reversed.toList()));
+  bool right([bool collapseAcrossEmpty = true]) {
+    return _collapseCells(rows.map((row) => row.reversed.toList()), collapseAcrossEmpty);
   }
 
-  bool up() {
-    return _collapseCells(columns);
+  bool up([bool collapseAcrossEmpty = true]) {
+    return _collapseCells(columns, collapseAcrossEmpty);
   }
 
-  bool down() {
-    return _collapseCells(columns.map((column) => column.reversed.toList()));
+  bool down([bool collapseAcrossEmpty = true]) {
+    return _collapseCells(columns.map((column) => column.reversed.toList()), collapseAcrossEmpty);
   }
 
-  bool doDirection(String direction) {
+  bool doDirection(String direction, [bool collapseAcrossEmpty = true]) {
     switch (direction) {
       case "up":
-        return up();
+        return up(collapseAcrossEmpty);
       case "down":
-        return down();
+        return down(collapseAcrossEmpty);
       case "left":
-        return left();
+        return left(collapseAcrossEmpty);
       case "right":
-        return right();
+        return right(collapseAcrossEmpty);
       default:
         throw "unknown direction: $direction";
     }
@@ -208,32 +214,32 @@ class EvaluateStrategy extends Strategy {
 
   const EvaluateStrategy(String name, this.searchDepth, [this.sumScores = false]) : super(name);
 
-  num evaluate(Board board, List<String> moves) {
-    return board.score;
+  num evaluate(List<Board> boards, List<String> moves) {
+    return boards.last.score;
   }
 
-  num _search(Board board, List<String> previousMoves) {
+  num _search(List<Board> boards, List<String> previousMoves) {
     if (previousMoves.length >= searchDepth) {
-      return evaluate(board, previousMoves);
+      return evaluate(boards, previousMoves);
     }
 
     num baseScore = 0;
     if (sumScores) {
-      baseScore = evaluate(board, previousMoves);
+      baseScore = evaluate(boards, previousMoves);
     }
 
     num bestScore = null;
     Board.DIRECTIONS.forEach((String dir) {
-      Board tmp = new Board.copy(board);
-      if (tmp.doDirection(dir)) {
-        num score = baseScore + _search(tmp, new List.from(previousMoves)..add(dir));
+      Board tmp = new Board.copy(boards.last);
+      if (tmp.doDirection(dir, false)) {
+        num score = baseScore + _search(new List.from(boards)..add(tmp), new List.from(previousMoves)..add(dir));
         if (bestScore == null || score > bestScore) {
           bestScore = score;
         }
       }
     });
 
-    return bestScore;
+    return bestScore != null ? bestScore : evaluate(boards, previousMoves);
   }
 
   String nextDirection(Board board) {
@@ -242,7 +248,7 @@ class EvaluateStrategy extends Strategy {
     Board.DIRECTIONS.forEach((String dir) {
       Board tmp = new Board.copy(board);
       if (tmp.doDirection(dir)) {
-        num score = _search(tmp, [dir]);
+        num score = _search([board, tmp], [dir]);
         if (bestScore == null || score > bestScore) {
           best = dir;
           bestScore = score;
@@ -256,21 +262,32 @@ class EvaluateStrategy extends Strategy {
 
 class GreedyStrategy extends EvaluateStrategy {
   const GreedyStrategy(int searchDepth) : super("greedy $searchDepth", searchDepth);
+
+  num evaluate(List<Board> boards, List<String> moves) {
+    return boards.last.score * boards[1].openCells.length;
+  }
 }
 
 class AntiGreedyStrategy extends EvaluateStrategy {
   const AntiGreedyStrategy(int searchDepth) : super("anti greedy $searchDepth", searchDepth);
 
-  num evaluate(Board board, List<String> moves) {
-    return -board.score;
+  num evaluate(List<Board> boards, List<String> moves) {
+    return -boards.last.score;
   }
 }
 
 class GreedyDownStrategy extends EvaluateStrategy {
   const GreedyDownStrategy(int searchDepth) : super("greedy $searchDepth down", searchDepth);
 
-  num evaluate(Board board, List<String> moves) {
-    return moves[0] == "up" ? -1 : board.score;
+  num evaluate(List<Board> boards, List<String> moves) {
+    if (moves.any((dir) => dir == "up")) {
+      return -1;
+    } else {
+      Board boardAfterFirst = boards[1];
+      // try to keep as many rows as possible non-empty to avoid up
+      int nonEmptyRows = boardAfterFirst.rows.where((row) => row.any((cell) => !cell.empty)).length;
+      return boards.last.score * nonEmptyRows * boardAfterFirst.openCells.length;
+    }
   }
 }
 
@@ -297,11 +314,11 @@ class EdgeStrategy extends EvaluateStrategy {
     return s / (cell.y + 1);
   }
 
-  num evaluate(Board board, List<String> moves) {
+  num evaluate(List<Board> boards, List<String> moves) {
     num score = 0;
-    board.rows.forEach((row) {
+    boards.last.rows.forEach((row) {
       row.forEach((cell) {
-        score += _edgeCellScore(cell, board);
+        score += _edgeCellScore(cell, boards.last);
       });
     });
     return score;
@@ -321,14 +338,23 @@ class AppController {
   num runDelay = 50;
   Timer currentTimer;
 
-  final List<Strategy> strategies = const [const RandomStrategy(), const UpLeftRightDownStrategy(),
-      const GreedyStrategy(1), const GreedyStrategy(2), const AntiGreedyStrategy(1), const AntiGreedyStrategy(2),
-      const GreedyDownStrategy(1), const GreedyDownStrategy(2), const GreedyDownStrategy(3), const GreedyDownStrategy(4),
-      const EdgeStrategy(1), const EdgeStrategy(2), const EdgeStrategy(3), const EdgeStrategy(4), const EdgeStrategy(5)];
+  List<Strategy> strategies;
 
   Strategy strategy;
 
   AppController(Element element, Scope scope) {
+    strategies = [const RandomStrategy(), const UpLeftRightDownStrategy(), const AntiGreedyStrategy(1),
+        const AntiGreedyStrategy(2)];
+    for (int i = 1; i < 10; ++i) {
+      strategies.add(new GreedyStrategy(i));
+    }
+    for (int i = 1; i < 10; ++i) {
+      strategies.add(new GreedyDownStrategy(i));
+    }
+    for (int i = 1; i < 10; ++i) {
+      strategies.add(new EdgeStrategy(i));
+    }
+
     strategy = strategies.first;
 
     element.onKeyDown.listen(keyDown);
@@ -417,6 +443,11 @@ class AppController {
     }
   }
 
+  void doDirectionOnlyNonEmpty(String direction) {
+    saveUndo();
+    board.doDirection(direction, false);
+  }
+
   void left() {
     doDirection("left");
   }
@@ -435,6 +466,7 @@ class AppController {
 
   void keyDown(KeyboardEvent event) {
     switch (event.keyCode) {
+      // arrow keys
       case 37:
         left();
         break;
@@ -446,6 +478,20 @@ class AppController {
         break;
       case 40:
         down();
+        break;
+
+      // wasd
+      case 65:
+        doDirectionOnlyNonEmpty("left");
+        break;
+      case 87:
+        doDirectionOnlyNonEmpty("up");
+        break;
+      case 68:
+        doDirectionOnlyNonEmpty("right");
+        break;
+      case 83:
+        doDirectionOnlyNonEmpty("down");
         break;
     }
   }
