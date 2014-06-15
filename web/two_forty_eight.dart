@@ -14,7 +14,7 @@ class Cell {
   int val;
 
   Cell(this.x, this.y, [this.val]);
-  Cell.copy(Cell cell): this(cell.x, cell.y, cell.val);
+  Cell.copy(Cell cell) : this(cell.x, cell.y, cell.val);
 
   bool get empty => val == null;
 }
@@ -186,7 +186,7 @@ class Strategy {
 class RandomStrategy extends Strategy {
   static final Random _random = new Random();
 
-  const RandomStrategy(): super("random");
+  const RandomStrategy() : super("random");
 
   String nextDirection(Board board) {
     return Board.DIRECTIONS[_random.nextInt(Board.DIRECTIONS.length)];
@@ -194,7 +194,7 @@ class RandomStrategy extends Strategy {
 }
 
 class UpLeftRightDownStrategy extends Strategy {
-  const UpLeftRightDownStrategy(): super("up left right down");
+  const UpLeftRightDownStrategy() : super("up left right down");
 
   String nextDirection(Board board) {
     Board tmp = new Board.copy(board);
@@ -206,7 +206,7 @@ class EvaluateStrategy extends Strategy {
   final int searchDepth;
   final bool sumScores;
 
-  const EvaluateStrategy(String name, this.searchDepth, [this.sumScores = false]): super(name);
+  const EvaluateStrategy(String name, this.searchDepth, [this.sumScores = false]) : super(name);
 
   num evaluate(Board board, List<String> moves) {
     return board.score;
@@ -255,11 +255,11 @@ class EvaluateStrategy extends Strategy {
 }
 
 class GreedyStrategy extends EvaluateStrategy {
-  const GreedyStrategy(int searchDepth): super("greedy $searchDepth", searchDepth);
+  const GreedyStrategy(int searchDepth) : super("greedy $searchDepth", searchDepth);
 }
 
 class AntiGreedyStrategy extends EvaluateStrategy {
-  const AntiGreedyStrategy(int searchDepth): super("anti greedy $searchDepth", searchDepth);
+  const AntiGreedyStrategy(int searchDepth) : super("anti greedy $searchDepth", searchDepth);
 
   num evaluate(Board board, List<String> moves) {
     return -board.score;
@@ -267,7 +267,7 @@ class AntiGreedyStrategy extends EvaluateStrategy {
 }
 
 class GreedyDownStrategy extends EvaluateStrategy {
-  const GreedyDownStrategy(int searchDepth): super("greedy $searchDepth down", searchDepth);
+  const GreedyDownStrategy(int searchDepth) : super("greedy $searchDepth down", searchDepth);
 
   num evaluate(Board board, List<String> moves) {
     return moves[0] == "up" ? -1 : board.score;
@@ -275,7 +275,7 @@ class GreedyDownStrategy extends EvaluateStrategy {
 }
 
 class EdgeStrategy extends EvaluateStrategy {
-  const EdgeStrategy(int searchDepth): super("edge $searchDepth", searchDepth, true);
+  const EdgeStrategy(int searchDepth) : super("edge $searchDepth", searchDepth, true);
 
   num _cellScore(Cell cell) {
     if (cell.empty) {
