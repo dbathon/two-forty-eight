@@ -326,8 +326,47 @@ class EdgeStrategy extends EvaluateStrategy {
 }
 
 
-@Controller(selector: "[main-ctrl]", publishAs: "c", exportExpressions: const ['[run, runDelay]'])
-class AppController {
+@Component(selector: "two-forty-eight", template: """
+<h1>Two forty eight</h1>
+
+<div>
+  <button ng-click="newGame()">New game</button>
+  <button ng-click="clear()">Clear</button>
+  <button ng-click="addRandom()">Add random</button>
+</div>
+
+<div>
+  <button ng-click="undo()">Undo</button>
+  -
+  <button ng-click="left()">left</button>
+  <button ng-click="right()">right</button>
+  <button ng-click="up()">up</button>
+  <button ng-click="down()">down</button>
+</div>
+
+<div>
+  <label>Strategy:
+    <select ng-model="strategy">
+      <option ng-repeat="s in strategies" ng-value="s">{{s.name}}</option>
+    </select>
+  </label>
+  <br>
+  <label>Run: <input type="checkbox" ng-model="run"></label>
+  <br>
+  <label>Delay: <input type="range" min="5" max="1000" ng-model="runDelay"></label>
+  <br>
+  Score: {{board.score}} <strong>{{gameOver ? 'Game Over' : ''}}</strong>
+</div>
+
+<table>
+  <tr ng-repeat="row in board.rows">
+    <td ng-repeat="cell in row">
+      {{cell.val}}
+    </td>
+  <tr>
+</table>
+""", exportExpressions: const ['[run, runDelay]'], useShadowDom: false)
+class AppController extends ScopeAware {
   Board board = new Board();
 
   List<Board> undos = [];
@@ -342,9 +381,9 @@ class AppController {
 
   Strategy strategy;
 
-  AppController(Element element, Scope scope) {
-    strategies = [const RandomStrategy(), const UpLeftRightDownStrategy(), const AntiGreedyStrategy(1),
-        const AntiGreedyStrategy(2)];
+  AppController(Element element) {
+    strategies =
+        [const RandomStrategy(), const UpLeftRightDownStrategy(), const AntiGreedyStrategy(1), const AntiGreedyStrategy(2)];
     for (int i = 1; i < 10; ++i) {
       strategies.add(new GreedyStrategy(i));
     }
@@ -358,7 +397,10 @@ class AppController {
     strategy = strategies.first;
 
     element.onKeyDown.listen(keyDown);
+  }
 
+  @override
+  void set scope(Scope scope) {
     scope.watch('[run, runDelay]', (v, _) {
       if (currentTimer != null) {
         currentTimer.cancel();
@@ -499,12 +541,6 @@ class AppController {
 }
 
 
-class AppModule extends Module {
-  AppModule() {
-    type(AppController);
-  }
-}
-
 void main() {
-  applicationFactory().addModule(new AppModule()).run();
+  applicationFactory().addModule(new Module()..bind(AppController)).run();
 }
